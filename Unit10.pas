@@ -1,0 +1,106 @@
+unit Unit10;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, StdCtrls, ExtCtrls, Grids, DBGrids, Buttons, DB, ADODB;
+
+type
+  TForm10 = class(TForm)
+    GroupBox1: TGroupBox;
+    DBGrid1: TDBGrid;
+    Panel1: TPanel;
+    LabeledEdit1: TLabeledEdit;
+    Button1: TButton;
+    ADOTable1: TADOTable;
+    ADOQuery1: TADOQuery;
+    DataSource1: TDataSource;
+    ADOQuery2: TADOQuery;
+    ListBox1: TListBox;
+    Splitter1: TSplitter;
+    Button2: TButton;
+    LabeledEdit2: TLabeledEdit;
+    procedure FormDeactivate(Sender: TObject);
+    procedure DBGrid1DblClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    kandidat:TStringList;
+    { Public declarations }
+  end;
+
+var
+  Form10: TForm10;
+
+implementation
+
+{$R *.dfm}
+uses unit1, Unit4;
+
+procedure TForm10.FormDeactivate(Sender: TObject);
+begin
+ Kandidat.Clear;
+ Kandidat.Free;
+end;
+
+procedure TForm10.DBGrid1DblClick(Sender: TObject);
+begin
+ Form1.AddVakans(ADOQuery1.FieldByName('client.id').asInteger,ADOQuery1.FieldByName('vakans.id').asInteger, act_update);
+end;
+
+procedure TForm10.Button1Click(Sender: TObject);
+var
+ vakans,resume:integer;
+ i:integer;
+begin
+
+ with ADOTable1 do begin
+  Close;
+  TableName:='work_rab';
+   Open;
+  for i:=0 to kandidat.Count-1 do begin
+   vakans:=ADOQuery1.FieldByName('vakans.id').AsInteger;
+   resume:=StrToInt(Kandidat.Strings[i]);
+   ADOQuery2.Close;
+   ADOQuery2.SQL.Clear;
+   ADOQuery2.SQL.Text:='select count(*) from work_rab where (id_vakans='+IntToStr(vakans)+')and(id_resume='+IntToStr(resume)+')';
+   ADOQuery2.Open;
+  if ADOQuery2.Fields[0].AsInteger=0 then begin
+    Insert;
+     FieldByName('id_vakans').AsInteger:=vakans;
+     FieldByName('id_resume').AsInteger:=resume;
+    Post;
+   end;//if 
+  end;//for
+   close;
+ end;//with
+ Form10.Close;
+end;
+
+procedure TForm10.Button2Click(Sender: TObject);
+var
+ usl,name,spec:string;
+begin
+ if not (LabeledEdit1.Text='') then name:='(client.name LIKE "%'+LabeledEdit1.Text+'%")'
+ else name:='(true)';
+ if not (LabeledEdit2.Text='') then spec:='(vakans.spec LIKE "%'+LabeledEdit2.Text+'%")'
+ else spec:='(true)';
+
+ usl:='WHERE (not vakans.ClosedVakans)and'+name+'and'+spec;
+
+ with ADOQuery1 do begin
+  Close;
+   SQL.Clear;
+   SQL.Add('select client.name, vakans.spec, vakans.id, client.id');
+   SQL.Add('FROM client LEFT JOIN vakans ON client.id = vakans.id_client');
+   SQL.Add(usl);
+  Open;
+ //  SQL.Add();
+ end;//with
+
+end;
+
+end.
